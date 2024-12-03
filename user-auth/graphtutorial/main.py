@@ -30,9 +30,7 @@ async def main():
         print('4. Extract email metadata')
         print('5. Extract calendar events')
         print('6. Extract contacts and network')
-        print('7. Extract task management (To-Do, Planner)')
-        print('8. Extract OneDrive usage')
-        print('9. Extract SharePoint usage')
+        print('7. Extract SharePoint usage')
 
         try:
             choice = int(input())
@@ -55,10 +53,6 @@ async def main():
             elif choice == 6:
                 await extract_contacts_and_network(graph)
             elif choice == 7:
-                await extract_task_management(graph)
-            elif choice == 8:
-                await extract_onedrive_usage(graph)
-            elif choice == 9:
                 await extract_sharepoint_usage(graph)
             else:
                 print('Invalid choice!\n')
@@ -134,19 +128,10 @@ async def extract_contacts_and_network(graph: Graph):
     await graph.extract_contacts_and_network()
 # </ExtractContactsAndNetworkSnippet>
 
-# <ExtractTaskManagementSnippet>
-async def extract_task_management(graph: Graph):
-    await graph.extract_task_management()
-# </ExtractTaskManagementSnippet>
-
-# <ExtractOneDriveUsageSnippet>
-async def extract_onedrive_usage(graph: Graph):
-    await graph.extract_onedrive_usage()
-# </ExtractOneDriveUsageSnippet>
-
 # <ExtractSharePointUsageSnippet>
 async def extract_sharepoint_usage(graph: Graph):
-    await graph.extract_sharepoint_usage()
+    search_term = input("Enter a search term for SharePoint sites (or leave blank for all): ")
+    await graph.extract_sharepoint_usage(search_term)
 # </ExtractSharePointUsageSnippet>
 
 # Run main

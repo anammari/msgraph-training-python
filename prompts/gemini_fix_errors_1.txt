@@ -1,0 +1,392 @@
+You are a very professional Python coding assistant that sincerely works hard to fix ALL the errors that the Python develper is facing in the use case below and providing detailed explanations of the error causes and detailed code solutions without omitting any code lines. 
+
+1. Overall Objective of the Application
+```
+The primary objective of this application is to provide a Python-based console interface for interacting with Microsoft Graph API. The application allows users to perform various operations on their Microsoft 365 data, such as accessing user information, managing email, calendar events, contacts, tasks, and SharePoint content. The application is designed to be extendable, enabling future integration of additional Microsoft Graph functionalities.
+```
+
+2. Functionality of graph.py Script
+```
+The `graph.py` script defines a `Graph` class that encapsulates the interactions with the Microsoft Graph API. This class handles authentication using OAuth 2.0 with the `DeviceCodeCredential` from the `azure.identity` library. The class provides methods to retrieve user information, list and send emails, extract email metadata, calendar events, contacts, task management data (using Microsoft To-Do and Planner), OneDrive usage patterns, and SharePoint usage patterns. Each method is asynchronous and uses the `GraphServiceClient` to make API calls, handling specific query parameters and request configurations to fetch and process data efficiently.
+```
+
+3. Functionality of main.py Script
+```
+The `main.py` script provides a command-line interface (CLI) for users to interact with the functionalities defined in the `Graph` class. It loads configuration settings from `config.cfg`, initializes the `Graph` object, and presents a menu for users to select various operations. The script includes methods to handle each menu option, such as displaying the access token, listing the user's inbox, sending an email, extracting email metadata, calendar events, contacts, task management data, OneDrive usage, and SharePoint usage. Each method is designed to call the corresponding method in the `Graph` class and handle any exceptions that may occur during API calls, providing clear feedback to the user.
+```
+
+4. Errors encountered (Focus on UNSOLVED errors ONLY)
+```
+○ The following API permissions are not found on the console: ToDo.Read Planner.Read Drive.Read
+○ SOLVED: Getting the error when running the app in Codespace: AADSTS650053: The application 'Graph console app' asked for scope 'Drive.Read' that doesn't exist on the resource '00000003-0000-0000-c000-000000000000'. Contact the app vendor.
+○ Option "6. Extract contacts and network" does not display any output
+○ UNSOLVED: Option "7. Extract task management (To-Do, Planner)" gives an error:
+tasks = await self.user_client.me.todo.lists.by_list_id(todo_list.id).tasks.get()
+AttributeError: 'ListsRequestBuilder' object has no attribute 'by_list_id'
+○ UNSOLVED: Option "8. Extract OneDrive usage" gives an error:
+drive_items = await self.user_client.me.drive.root.children.get()
+AttributeError: 'DriveRequestBuilder' object has no attribute 'root'
+```
+
+5. Code Files:
+```
+graph.py
+
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+# <UserAuthConfigSnippet>
+from configparser import SectionProxy
+from azure.identity import DeviceCodeCredential
+from msgraph import GraphServiceClient
+from msgraph.generated.users.item.user_item_request_builder import UserItemRequestBuilder
+from msgraph.generated.users.item.mail_folders.item.messages.messages_request_builder import MessagesRequestBuilder
+from msgraph.generated.users.item.send_mail.send_mail_post_request_body import SendMailPostRequestBody
+from msgraph.generated.models.message import Message
+from msgraph.generated.models.item_body import ItemBody
+from msgraph.generated.models.body_type import BodyType
+from msgraph.generated.models.recipient import Recipient
+from msgraph.generated.models.email_address import EmailAddress
+from msgraph.generated.users.item.calendar.events.events_request_builder import EventsRequestBuilder
+from msgraph.generated.users.item.contacts.contacts_request_builder import ContactsRequestBuilder
+from msgraph.generated.users.item.todo.todo_request_builder import TodoRequestBuilder
+from msgraph.generated.users.item.todo.lists.item.tasks.tasks_request_builder import TasksRequestBuilder
+from msgraph.generated.users.item.planner.planner_request_builder import PlannerRequestBuilder
+from msgraph.generated.users.item.drive.drive_request_builder import DriveRequestBuilder
+from msgraph.generated.sites.item.lists.lists_request_builder import ListsRequestBuilder
+
+class Graph:
+    settings: SectionProxy
+    device_code_credential: DeviceCodeCredential
+    user_client: GraphServiceClient
+
+    def __init__(self, config: SectionProxy):
+        self.settings = config
+        client_id = self.settings['clientId']
+        tenant_id = self.settings['tenantId']
+        graph_scopes = self.settings['graphUserScopes'].split(' ')
+
+        self.device_code_credential = DeviceCodeCredential(client_id, tenant_id = tenant_id)
+        self.user_client = GraphServiceClient(self.device_code_credential, graph_scopes)
+# </UserAuthConfigSnippet>
+
+    # <GetUserTokenSnippet>
+    async def get_user_token(self):
+        graph_scopes = self.settings['graphUserScopes']
+        access_token = self.device_code_credential.get_token(graph_scopes)
+        return access_token.token
+    # </GetUserTokenSnippet>
+
+    # <GetUserSnippet>
+    async def get_user(self):
+        # Only request specific properties using $select
+        query_params = UserItemRequestBuilder.UserItemRequestBuilderGetQueryParameters(
+            select=['displayName', 'mail', 'userPrincipalName']
+        )
+
+        request_config = UserItemRequestBuilder.UserItemRequestBuilderGetRequestConfiguration(
+            query_parameters=query_params
+        )
+
+        user = await self.user_client.me.get(request_configuration=request_config)
+        return user
+    # </GetUserSnippet>
+
+    # <GetInboxSnippet>
+    async def get_inbox(self):
+        query_params = MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
+            # Only request specific properties
+            select=['from', 'isRead', 'receivedDateTime', 'subject'],
+            # Get at most 25 results
+            top=25,
+            # Sort by received time, newest first
+            orderby=['receivedDateTime DESC']
+        )
+        request_config = MessagesRequestBuilder.MessagesRequestBuilderGetRequestConfiguration(
+            query_parameters= query_params
+        )
+
+        messages = await self.user_client.me.mail_folders.by_mail_folder_id('inbox').messages.get(
+                request_configuration=request_config)
+        return messages
+    # </GetInboxSnippet>
+
+    # <SendMailSnippet>
+    async def send_mail(self, subject: str, body: str, recipient: str):
+        message = Message()
+        message.subject = subject
+
+        message.body = ItemBody()
+        message.body.content_type = BodyType.Text
+        message.body.content = body
+
+        to_recipient = Recipient()
+        to_recipient.email_address = EmailAddress()
+        to_recipient.email_address.address = recipient
+        message.to_recipients = []
+        message.to_recipients.append(to_recipient)
+
+        request_body = SendMailPostRequestBody()
+        request_body.message = message
+
+        await self.user_client.me.send_mail.post(body=request_body)
+    # </SendMailSnippet>
+
+    # <ExtractInferenceDataSnippet>
+    async def extract_inference_data(self):
+        await self.extract_email_metadata()
+        await self.extract_calendar_events()
+        await self.extract_contacts_and_network()
+        await self.extract_task_management()
+        await self.extract_onedrive_usage()
+        await self.extract_sharepoint_usage()
+    # </ExtractInferenceDataSnippet>
+
+    # <ExtractEmailMetadataSnippet>
+    async def extract_email_metadata(self):
+        messages = await self.get_inbox()
+        for message in messages.value:
+            print(f"Subject: {message.subject}, From: {message.from_.email_address.address}, Received: {message.received_date_time}, Read: {message.is_read}")
+    # </ExtractEmailMetadataSnippet>
+
+    # <ExtractCalendarEventsSnippet>
+    async def extract_calendar_events(self):
+        query_params = EventsRequestBuilder.EventsRequestBuilderGetQueryParameters(
+            select=['subject', 'start', 'end', 'location'],
+            top=25,
+            orderby=['start/dateTime DESC']
+        )
+        request_config = EventsRequestBuilder.EventsRequestBuilderGetRequestConfiguration(
+            query_parameters=query_params
+        )
+        events = await self.user_client.me.calendar.events.get(request_configuration=request_config)
+        for event in events.value:
+            print(f"Subject: {event.subject}, Start: {event.start.date_time}, End: {event.end.date_time}, Location: {event.location.display_name}")
+    # </ExtractCalendarEventsSnippet>
+
+    # <ExtractContactsAndNetworkSnippet>
+    async def extract_contacts_and_network(self):
+        contacts = await self.user_client.me.contacts.get()
+        if contacts.value:
+            for contact in contacts.value:
+                print(f"Name: {contact.display_name}, Email: {contact.email_addresses[0].address if contact.email_addresses else 'N/A'}")
+        else:
+            print("No contacts found.")
+    # </ExtractContactsAndNetworkSnippet>
+
+    # <ExtractTaskManagementSnippet>
+    async def extract_task_management(self):
+        todo_lists = await self.user_client.me.todo.lists.get()
+        if todo_lists.value:
+            for todo_list in todo_lists.value:
+                print(f"Task List: {todo_list.display_name}")
+                tasks = await self.user_client.me.todo.lists.by_list_id(todo_list.id).tasks.get()
+                if tasks.value:
+                    for task in tasks.value:
+                        print(f"Task: {task.title}, Due: {task.due_date_time.date_time if task.due_date_time else 'N/A'}, Completed: {task.is_completed}")
+                else:
+                    print("No tasks found in this list.")
+        else:
+            print("No task lists found.")
+
+        planner_plans = await self.user_client.me.planner.plans.get()
+        if planner_plans.value:
+            for plan in planner_plans.value:
+                print(f"Planner Plan: {plan.title}")
+                # Note: Further extraction of plan details requires more specific queries which are not covered here.
+        else:
+            print("No Planner plans found.")
+    # </ExtractTaskManagementSnippet>
+
+    # <ExtractOneDriveUsageSnippet>
+    async def extract_onedrive_usage(self):
+        drive = await self.user_client.me.drive.get()
+        drive_items = await self.user_client.me.drive.root.children.get()
+        for item in drive_items.value:
+            print(f"Item: {item.name}, Size: {item.size}, Modified: {item.last_modified_date_time}")
+    # </ExtractOneDriveUsageSnippet>
+
+    # <ExtractSharePointUsageSnippet>
+    async def extract_sharepoint_usage(self):
+        try:
+            sites = await self.user_client.sites.get()
+            if sites.value:
+                for site in sites.value:
+                    print(f"Site: {site.display_name or site.web_url}")
+                    lists = await self.user_client.sites.by_site_id(site.id).lists.get()
+                    if lists.value:
+                        for lst in lists.value:
+                            print(f"  List: {lst.display_name}")
+                            items = await self.user_client.sites.by_site_id(site.id).lists.by_list_id(lst.id).items.get()
+                            if items.value:
+                                for item in items.value:
+                                    print(f"    Item: {item.fields.additional_data}")
+                            else:
+                                print("    No items found in this list.")
+                    else:
+                        print("  No lists found in this site.")
+            else:
+                print("No SharePoint sites found.")
+        except Exception as e:
+            print(f"Error extracting SharePoint usage: {e}")
+    # </ExtractSharePointUsageSnippet>
+
+```
+
+```
+main.py
+
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+# <ProgramSnippet>
+import asyncio
+import configparser
+from msgraph.generated.models.o_data_errors.o_data_error import ODataError
+from graph import Graph
+
+async def main():
+    print('Python Graph Tutorial\n')
+
+    # Load settings
+    config = configparser.ConfigParser()
+    config.read(['config.cfg', 'config.dev.cfg'])
+    azure_settings = config['azure']
+
+    graph: Graph = Graph(azure_settings)
+
+    await greet_user(graph)
+
+    choice = -1
+
+    while choice != 0:
+        print('Please choose one of the following options:')
+        print('0. Exit')
+        print('1. Display access token')
+        print('2. List my inbox')
+        print('3. Send mail')
+        print('4. Extract email metadata')
+        print('5. Extract calendar events')
+        print('6. Extract contacts and network')
+        print('7. Extract task management (To-Do, Planner)')
+        print('8. Extract OneDrive usage')
+        print('9. Extract SharePoint usage')
+
+        try:
+            choice = int(input())
+        except ValueError:
+            choice = -1
+
+        try:
+            if choice == 0:
+                print('Goodbye...')
+            elif choice == 1:
+                await display_access_token(graph)
+            elif choice == 2:
+                await list_inbox(graph)
+            elif choice == 3:
+                await send_mail(graph)
+            elif choice == 4:
+                await extract_email_metadata(graph)
+            elif choice == 5:
+                await extract_calendar_events(graph)
+            elif choice == 6:
+                await extract_contacts_and_network(graph)
+            elif choice == 7:
+                await extract_task_management(graph)
+            elif choice == 8:
+                await extract_onedrive_usage(graph)
+            elif choice == 9:
+                await extract_sharepoint_usage(graph)
+            else:
+                print('Invalid choice!\n')
+        except ODataError as odata_error:
+            print('Error:')
+            if odata_error.error:
+                print(odata_error.error.code, odata_error.error.message)
+
+# </ProgramSnippet>
+
+# <GreetUserSnippet>
+async def greet_user(graph: Graph):
+    user = await graph.get_user()
+    if user:
+        print('Hello,', user.display_name)
+        # For Work/school accounts, email is in mail property
+        # Personal accounts, email is in userPrincipalName
+        print('Email:', user.mail or user.user_principal_name, '\n')
+# </GreetUserSnippet>
+
+# <DisplayAccessTokenSnippet>
+async def display_access_token(graph: Graph):
+    token = await graph.get_user_token()
+    print('User token:', token, '\n')
+# </DisplayAccessTokenSnippet>
+
+# <ListInboxSnippet>
+async def list_inbox(graph: Graph):
+    message_page = await graph.get_inbox()
+    if message_page and message_page.value:
+        # Output each message's details
+        for message in message_page.value:
+            print('Message:', message.subject)
+            if (
+                message.from_ and
+                message.from_.email_address
+            ):
+                print('  From:', message.from_.email_address.name or 'NONE')
+            else:
+                print('  From: NONE')
+            print('  Status:', 'Read' if message.is_read else 'Unread')
+            print('  Received:', message.received_date_time)
+
+        # If @odata.nextLink is present
+        more_available = message_page.odata_next_link is not None
+        print('\nMore messages available?', more_available, '\n')
+# </ListInboxSnippet>
+
+# <SendMailSnippet>
+async def send_mail(graph: Graph):
+    # Send mail to the signed-in user
+    # Get the user for their email address
+    user = await graph.get_user()
+    if user:
+        user_email = user.mail or user.user_principal_name
+
+        await graph.send_mail('Testing Microsoft Graph', 'Hello world!', user_email or '')
+        print('Mail sent.\n')
+# </SendMailSnippet>
+
+# <ExtractEmailMetadataSnippet>
+async def extract_email_metadata(graph: Graph):
+    await graph.extract_email_metadata()
+# </ExtractEmailMetadataSnippet>
+
+# <ExtractCalendarEventsSnippet>
+async def extract_calendar_events(graph: Graph):
+    await graph.extract_calendar_events()
+# </ExtractCalendarEventsSnippet>
+
+# <ExtractContactsAndNetworkSnippet>
+async def extract_contacts_and_network(graph: Graph):
+    await graph.extract_contacts_and_network()
+# </ExtractContactsAndNetworkSnippet>
+
+# <ExtractTaskManagementSnippet>
+async def extract_task_management(graph: Graph):
+    await graph.extract_task_management()
+# </ExtractTaskManagementSnippet>
+
+# <ExtractOneDriveUsageSnippet>
+async def extract_onedrive_usage(graph: Graph):
+    await graph.extract_onedrive_usage()
+# </ExtractOneDriveUsageSnippet>
+
+# <ExtractSharePointUsageSnippet>
+async def extract_sharepoint_usage(graph: Graph):
+    await graph.extract_sharepoint_usage()
+# </ExtractSharePointUsageSnippet>
+
+# Run main
+asyncio.run(main())
+```
