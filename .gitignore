@@ -1,6 +1,3 @@
-# Config files with secrets
-user-auth/graphtutorial/config.cfg
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -136,3 +133,7 @@ config.dev.cfg
 
 # old files
 *old.py
+
+# Config files with secrets
+user-auth/graphtutorial/config.cfg
+app-auth/graphapponlytutorial/config.cfg

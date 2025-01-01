@@ -8,7 +8,7 @@ from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 from graph import Graph
 
 async def main():
-    print('Python Graph App-Only Tutorial\n')
+    print('Python Graph Tutorial\n')
 
     # Load settings
     config = configparser.ConfigParser()
@@ -17,14 +17,20 @@ async def main():
 
     graph: Graph = Graph(azure_settings)
 
+    await greet_user(graph)
+
     choice = -1
 
     while choice != 0:
         print('Please choose one of the following options:')
         print('0. Exit')
         print('1. Display access token')
-        print('2. List users')
-        print('3. Make a Graph call')
+        print('2. List my inbox')
+        print('3. Send mail')
+        print('4. Extract email metadata')
+        print('5. Extract calendar events')
+        print('6. Extract contacts and network')
+        print('7. Extract SharePoint usage')
 
         try:
             choice = int(input())
@@ -37,16 +43,35 @@ async def main():
             elif choice == 1:
                 await display_access_token(graph)
             elif choice == 2:
-                await list_users(graph)
+                await list_inbox(graph)
             elif choice == 3:
-                await make_graph_call(graph)
+                await send_mail(graph)
+            elif choice == 4:
+                await extract_email_metadata(graph)
+            elif choice == 5:
+                await extract_calendar_events(graph)
+            elif choice == 6:
+                await extract_contacts_and_network(graph)
+            elif choice == 7:
+                await extract_sharepoint_usage(graph)
             else:
                 print('Invalid choice!\n')
         except ODataError as odata_error:
             print('Error:')
             if odata_error.error:
                 print(odata_error.error.code, odata_error.error.message)
+
 # </ProgramSnippet>
+
+# <GreetUserSnippet>
+async def greet_user(graph: Graph):
+    user = await graph.get_user()
+    if user:
+        print('Hello,', user.display_name)
+        # For Work/school accounts, email is in mail property
+        # Personal accounts, email is in userPrincipalName
+        print('Email:', user.mail or user.user_principal_name, '\n')
+# </GreetUserSnippet>
 
 # <DisplayAccessTokenSnippet>
 async def display_access_token(graph: Graph):
@@ -54,26 +79,60 @@ async def display_access_token(graph: Graph):
     print('App-only token:', token, '\n')
 # </DisplayAccessTokenSnippet>
 
-# <ListUsersSnippet>
-async def list_users(graph: Graph):
-    users_page = await graph.get_users()
-
-    # Output each users's details
-    if users_page and users_page.value:
-        for user in users_page.value:
-            print('User:', user.display_name)
-            print('  ID:', user.id)
-            print('  Email:', user.mail)
+# <ListInboxSnippet>
+async def list_inbox(graph: Graph):
+    message_page = await graph.get_inbox()
+    if message_page and message_page.value:
+        # Output each message's details
+        for message in message_page.value:
+            print('Message:', message.subject)
+            if (
+                message.from_ and
+                message.from_.email_address
+            ):
+                print('  From:', message.from_.email_address.name or 'NONE')
+            else:
+                print('  From: NONE')
+            print('  Status:', 'Read' if message.is_read else 'Unread')
+            print('  Received:', message.received_date_time)
 
         # If @odata.nextLink is present
-        more_available = users_page.odata_next_link is not None
-        print('\nMore users available?', more_available, '\n')
-# </ListUsersSnippet>
+        more_available = message_page.odata_next_link is not None
+        print('\nMore messages available?', more_available, '\n')
+# </ListInboxSnippet>
 
-# <MakeGraphCallSnippet>
-async def make_graph_call(graph: Graph):
-    await graph.make_graph_call()
-# </MakeGraphCallSnippet>
+# <SendMailSnippet>
+async def send_mail(graph: Graph):
+    # Send mail to the signed-in user
+    # Get the user for their email address
+    user = await graph.get_user()
+    if user:
+        user_email = user.mail or user.user_principal_name
+
+        await graph.send_mail('Testing Microsoft Graph', 'Hello world!', user_email or '')
+        print('Mail sent.\n')
+# </SendMailSnippet>
+
+# <ExtractEmailMetadataSnippet>
+async def extract_email_metadata(graph: Graph):
+    await graph.extract_email_metadata()
+# </ExtractEmailMetadataSnippet>
+
+# <ExtractCalendarEventsSnippet>
+async def extract_calendar_events(graph: Graph):
+    await graph.extract_calendar_events()
+# </ExtractCalendarEventsSnippet>
+
+# <ExtractContactsAndNetworkSnippet>
+async def extract_contacts_and_network(graph: Graph):
+    await graph.extract_contacts_and_network()
+# </ExtractContactsAndNetworkSnippet>
+
+# <ExtractSharePointUsageSnippet>
+async def extract_sharepoint_usage(graph: Graph):
+    search_term = input("Enter a search term for SharePoint sites (or leave blank for all): ")
+    await graph.extract_sharepoint_usage(search_term)
+# </ExtractSharePointUsageSnippet>
 
 # Run main
 asyncio.run(main())
