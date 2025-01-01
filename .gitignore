@@ -137,3 +137,6 @@ config.dev.cfg
 # Config files with secrets
 user-auth/graphtutorial/config.cfg
 app-auth/graphapponlytutorial/config.cfg
+
+# Prompts
+prompts/*
