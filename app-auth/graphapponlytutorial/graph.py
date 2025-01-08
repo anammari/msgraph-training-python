@@ -86,9 +86,45 @@ class Graph:
         await self.extract_sharepoint_usage()
 
     async def extract_email_metadata(self):
-        messages = await self.get_inbox()
+        query_params = MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
+            select=['from', 'isRead', 'receivedDateTime', 'subject', 'toRecipients', 'ccRecipients', 'importance', 'hasAttachments', 'categories'],
+            top=25,
+            orderby=['receivedDateTime DESC']
+        )
+        request_config = MessagesRequestBuilder.MessagesRequestBuilderGetRequestConfiguration(
+            query_parameters=query_params
+        )
+
+        messages = await self.app_client.users.by_user_id(self.user_id).mail_folders.by_mail_folder_id('inbox').messages.get(
+            request_configuration=request_config)
+
+        email_metadata = []
         for message in messages.value:
-            print(f"Subject: {message.subject}, From: {message.from_.email_address.address}, Received: {message.received_date_time}, Read: {message.is_read}")
+            metadata = {
+                "subject": message.subject,
+                "from": message.from_.email_address.address if message.from_ and message.from_.email_address else "N/A",
+                "received_date_time": message.received_date_time.strftime('%Y-%m-%d %H:%M:%S%z'),
+                "is_read": message.is_read,
+                "to_recipients": [recipient.email_address.address for recipient in message.to_recipients] if message.to_recipients else [],
+                "cc_recipients": [recipient.email_address.address for recipient in message.cc_recipients] if message.cc_recipients else [],
+                "importance": message.importance.value if message.importance else "normal",
+                "has_attachments": message.has_attachments,
+                "categories": message.categories if message.categories else []
+            }
+            email_metadata.append(metadata)
+
+        # Print the enriched metadata
+        for metadata in email_metadata:
+            print(f"Subject: {metadata['subject']}")
+            print(f"From: {metadata['from']}")
+            print(f"Received: {metadata['received_date_time']}")
+            print(f"Read: {'Yes' if metadata['is_read'] else 'No'}")
+            print(f"To Recipients: {', '.join(metadata['to_recipients'])}")
+            print(f"CC Recipients: {', '.join(metadata['cc_recipients'])}")
+            print(f"Importance: {metadata['importance']}")
+            print(f"Has Attachments: {'Yes' if metadata['has_attachments'] else 'No'}")
+            print(f"Categories: {', '.join(metadata['categories'])}")
+            print("-" * 40)
 
     async def extract_calendar_events(self):
         query_params = EventsRequestBuilder.EventsRequestBuilderGetQueryParameters(
