@@ -14,6 +14,7 @@ anyio==4.3.0
     # via httpx
 async-timeout==4.0.3
     # via aiohttp
+nest-asyncio
 attrs==23.2.0
     # via aiohttp
 azure-core==1.31.0

@@ -1,0 +1,30 @@
+curl -X GET http://127.0.0.1:5000/options -H "Content-Type: application/json"
+
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 1
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 2
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 3
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 4
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 5
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 6
+}'
+
+curl -X POST http://127.0.0.1:5000/interact -H "Content-Type: application/json" -d '{
+  "option": 7
+}'
