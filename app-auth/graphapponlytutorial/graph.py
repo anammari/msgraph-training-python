@@ -141,6 +141,8 @@ class Graph:
         events = await self.app_client.users.by_user_id(self.user_id).calendar.events.get(request_configuration=request_config)
         for event in events.value:
             print(f"Subject: {event.subject}, Start: {event.start.date_time}, End: {event.end.date_time}, Location: {event.location.display_name}")
+        # Return the calendar events
+        return events
 
     async def extract_contacts_and_network(self):
         contacts = await self.app_client.users.by_user_id(self.user_id).contacts.get()
