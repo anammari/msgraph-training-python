@@ -81,18 +81,10 @@ async def process_option(option):
         else:
             return {'error': 'User not found.'}, 500
     elif option == 4:
-        messages = await graph_instance.get_inbox()
-        if messages and messages.value:
-            message_list = []
-            for message in messages.value:
-                msg = {
-                    'subject': message.subject,
-                    'from': message.from_.email_address.address if message.from_ and message.from_.email_address else 'NONE',
-                    'received_date_time': str(message.received_date_time),
-                    'is_read': message.is_read
-                }
-                message_list.append(msg)
-            return {'email_metadata': message_list}
+        # Call the enriched extract_email_metadata function
+        metadata = await graph_instance.extract_email_metadata()
+        if metadata:
+            return {'email_metadata': metadata}
         else:
             return {'email_metadata': []}
     elif option == 5:

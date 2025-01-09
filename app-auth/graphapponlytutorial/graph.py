@@ -125,6 +125,9 @@ class Graph:
             print(f"Has Attachments: {'Yes' if metadata['has_attachments'] else 'No'}")
             print(f"Categories: {', '.join(metadata['categories'])}")
             print("-" * 40)
+        
+        # Return the enriched metadata
+        return email_metadata
 
     async def extract_calendar_events(self):
         query_params = EventsRequestBuilder.EventsRequestBuilderGetQueryParameters(
