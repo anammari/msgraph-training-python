@@ -39,15 +39,17 @@ def interact():
         option = data['option']
         if not isinstance(option, int):
             return jsonify({'error': 'Option must be an integer'}), 400
-
+        # Get search_term from the request data
+        search_term = data.get('search_term', '')
+        
         # Process the selected option
-        result = asyncio.run(process_option(option))
+        result = asyncio.run(process_option(option, search_term))
         return jsonify(result)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-async def process_option(option):
+async def process_option(option, search_term=''):
     # Initialize Graph object inside the async function to ensure it uses the same event loop
     graph_instance = Graph(azure_settings)
 
@@ -116,7 +118,6 @@ async def process_option(option):
         else:
             return {'contacts': []}
     elif option == 7:
-        search_term = request.args.get('search_term', '')
         sites = await graph_instance.extract_sharepoint_usage(search_term)
         if sites and sites.value:
             site_list = []

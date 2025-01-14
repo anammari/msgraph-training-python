@@ -152,6 +152,9 @@ class Graph:
         else:
             print("No contacts found.")
 
+        # Return the contacts
+        return contacts
+
     async def extract_sharepoint_usage(self, search_term=None):
         try:
             if search_term:
@@ -179,6 +182,8 @@ class Graph:
                                 print("    No items found in this list.")
                     else:
                         print("  No lists found in this site.")
+                # Return the SharePoint sites
+                return sites
             else:
                 print(f"No SharePoint sites found for search term '{search_term or ''}'")
         except Exception as e:
