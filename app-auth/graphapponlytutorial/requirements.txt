@@ -47,6 +47,9 @@ frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
+google-generativeai
+google-genai==0.3.0
+grpcio==1.60.1
 h11==0.14.0
     # via httpcore
 h2==4.1.0
@@ -69,6 +72,8 @@ idna==3.7
     #   yarl
 importlib-metadata==6.11.0
     # via opentelemetry-api
+llama-index-llms-gemini
+llama-index-embeddings-gemini
 microsoft-kiota-abstractions==1.3.1
     # via
     #   microsoft-kiota-authentication-azure
@@ -139,6 +144,7 @@ python-dateutil==2.9.0.post0
     #   microsoft-kiota-serialization-text
     #   pendulum
     #   time-machine
+python-dotenv
 requests==2.32.0
     # via
     #   azure-core
