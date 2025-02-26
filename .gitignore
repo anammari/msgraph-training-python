@@ -138,5 +138,6 @@ config.dev.cfg
 user-auth/graphtutorial/config.cfg
 app-auth/graphapponlytutorial/config.cfg
 
-# Prompts
+# Prompts and transcripts
 prompts/*
+transcripts/*
